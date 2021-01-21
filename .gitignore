@@ -1,0 +1,9 @@
+.idea
+target/
+node_modules/
+**/*.rs.bk
+Cargo.lock
+bin/
+pkg/
+dist/
+wasm-pack.log
