@@ -7,16 +7,32 @@ edition = "2018"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[features]
-default = ["console_error_panic_hook", "wee_alloc"]
-
 [dependencies]
-wasm-bindgen = "0.2.63"
-console_error_panic_hook = { version = "0.1.6", optional = true }
-wee_alloc = { version = "0.4.5", optional = true }
+# Stuff
+anyhow = "1.0"
+base64 = "0.11"
+console_error_panic_hook = "0.1"
+hex = "0.4"
+js-sys = "0.3"
+num-bigint = "0.2"
+num-traits = "0.2"
+serde = { version = "1.0", features = [ "derive" ] }
+serde_json = "1.0"
+thiserror = "1.0"
+wasm-bindgen = "0.2"
+wee_alloc = "0.4.5"
+
+# BC specific crates
+ethereum-types = "0.9"
+ethabi = "12.0"
+ton_abi = { git = "https://github.com/tonlabs/ton-labs-abi.git" }
+ton_vm = { git = "https://github.com/tonlabs/ton-labs-vm.git", default-features = false }
+ton_types = { git = "https://github.com/tonlabs/ton-labs-types.git" }
+ton_block = { git = "https://github.com/tonlabs/ton-labs-block.git" }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.13"
+wasm-bindgen-test = "0.3"
 
 [profile.release]
 opt-level = "s"
+lto = true
