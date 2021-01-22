@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
 use num_bigint::BigUint;
+use num_traits::ToPrimitive;
 use serde::Deserialize;
 use ton_abi::{Function, Param, ParamType, Token, TokenValue};
 use ton_block::{CommonMsgInfo, ExternalInboundMessageHeader, Message, MsgAddress, MsgAddressInt};
 use ton_types::{Cell, UInt256};
 
 use crate::tvm;
-use num_traits::ToPrimitive;
+use crate::utils::Result;
 
 pub fn get_details(code: Cell, data: Cell) -> Result<TonEventDetails> {
     let tokens = execute_message(code, data)?;
@@ -25,7 +25,7 @@ fn execute_message(code: Cell, data: Cell) -> Result<Vec<Token>> {
 
     let message = abi
         .encode_input(&header, &[], false, None)
-        .map_err(|_| anyhow!("Failed to encode input"))?;
+        .map_err(|_| "Failed to encode input")?;
 
     let addr = MsgAddressInt::default();
     let mut msg = Message::with_ext_in_header(ExternalInboundMessageHeader {
@@ -41,19 +41,19 @@ fn execute_message(code: Cell, data: Cell) -> Result<Vec<Token>> {
             continue;
         }
 
-        let body = message.body().ok_or_else(|| anyhow!("Out message must have a body"))?;
+        let body = message.body().ok_or("Out message must have a body")?;
 
         if abi
             .is_my_output_message(body.clone(), false)
-            .map_err(|_| anyhow!("Failed to check output message"))?
+            .map_err(|_| "Failed to check output message")?
         {
             return abi
                 .decode_output(body, false)
-                .map_err(|_| anyhow!("Failed to decode output message"));
+                .map_err(|_| "Failed to decode output message");
         }
     }
 
-    Err(anyhow!("No output messages found"))
+    Err("No output messages found")
 }
 
 pub struct TonEventDetails {
@@ -65,7 +65,7 @@ pub struct TonEventDetails {
 }
 
 impl TryParse<TonEventDetails> for Vec<Token> {
-    fn try_parse(self) -> ParseResult<TonEventDetails> {
+    fn try_parse(self) -> Result<TonEventDetails> {
         let mut tuple = self.into_iter();
 
         Ok(TonEventDetails {
@@ -90,10 +90,10 @@ pub struct TonEventInitData {
 }
 
 impl TryParse<TonEventInitData> for TokenValue {
-    fn try_parse(self) -> ParseResult<TonEventInitData> {
+    fn try_parse(self) -> Result<TonEventInitData> {
         let mut tuple = match self {
             TokenValue::Tuple(tuple) => tuple.into_iter(),
-            _ => return Err(InvalidAbiError),
+            _ => return Err(INVALID_ABI),
         };
 
         Ok(TonEventInitData {
@@ -115,112 +115,112 @@ pub enum EventStatus {
 }
 
 impl TryParse<EventStatus> for TokenValue {
-    fn try_parse(self) -> ParseResult<EventStatus> {
+    fn try_parse(self) -> Result<EventStatus> {
         match self {
             TokenValue::Uint(value) => match value.number.to_u8() {
                 Some(0) => Ok(EventStatus::InProcess),
                 Some(1) => Ok(EventStatus::Confirmed),
                 Some(2) => Ok(EventStatus::Rejected),
-                _ => Err(InvalidAbiError),
+                _ => Err(INVALID_ABI),
             },
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<Cell> for TokenValue {
-    fn try_parse(self) -> ParseResult<Cell> {
+    fn try_parse(self) -> Result<Cell> {
         match self {
             TokenValue::Cell(cell) => Ok(cell),
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<Vec<MsgAddressInt>> for TokenValue {
-    fn try_parse(self) -> ParseResult<Vec<MsgAddressInt>> {
+    fn try_parse(self) -> Result<Vec<MsgAddressInt>> {
         match self {
             TokenValue::Array(tuple) => tuple.into_iter().map(TryParse::<MsgAddressInt>::try_parse).collect(),
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<MsgAddressInt> for TokenValue {
-    fn try_parse(self) -> ParseResult<MsgAddressInt> {
+    fn try_parse(self) -> Result<MsgAddressInt> {
         match self {
             TokenValue::Address(address) => match address {
                 MsgAddress::AddrStd(address) => Ok(MsgAddressInt::AddrStd(address)),
                 MsgAddress::AddrVar(address) => Ok(MsgAddressInt::AddrVar(address)),
-                _ => Err(InvalidAbiError),
+                _ => Err(INVALID_ABI),
             },
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<BigUint> for TokenValue {
-    fn try_parse(self) -> ParseResult<BigUint> {
+    fn try_parse(self) -> Result<BigUint> {
         match self {
             TokenValue::Uint(data) => Ok(data.number),
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<u64> for TokenValue {
-    fn try_parse(self) -> ParseResult<u64> {
+    fn try_parse(self) -> Result<u64> {
         match self {
-            TokenValue::Uint(data) => data.number.to_u64().ok_or(InvalidAbiError),
+            TokenValue::Uint(data) => data.number.to_u64().ok_or(INVALID_ABI),
 
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<u32> for TokenValue {
-    fn try_parse(self) -> ParseResult<u32> {
+    fn try_parse(self) -> Result<u32> {
         match self {
-            TokenValue::Uint(data) => data.number.to_u32().ok_or(InvalidAbiError),
+            TokenValue::Uint(data) => data.number.to_u32().ok_or(INVALID_ABI),
 
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<Vec<Vec<u8>>> for TokenValue {
-    fn try_parse(self) -> ParseResult<Vec<Vec<u8>>> {
+    fn try_parse(self) -> Result<Vec<Vec<u8>>> {
         match self {
             TokenValue::Array(tokens) => tokens.into_iter().map(TryParse::<Vec<u8>>::try_parse).collect(),
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<Vec<u8>> for TokenValue {
-    fn try_parse(self) -> ParseResult<Vec<u8>> {
+    fn try_parse(self) -> Result<Vec<u8>> {
         match self {
             TokenValue::Bytes(tokens) => Ok(tokens),
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<u8> for TokenValue {
-    fn try_parse(self) -> ParseResult<u8> {
+    fn try_parse(self) -> Result<u8> {
         match self {
-            TokenValue::Uint(data) => data.number.to_u8().ok_or(InvalidAbiError),
+            TokenValue::Uint(data) => data.number.to_u8().ok_or(INVALID_ABI),
 
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
 
 impl TryParse<UInt256> for TokenValue {
-    fn try_parse(self) -> ParseResult<UInt256> {
+    fn try_parse(self) -> Result<UInt256> {
         match self {
             TokenValue::Uint(data) => Ok(data.number.to_bytes_be().into()),
-            _ => Err(InvalidAbiError),
+            _ => Err(INVALID_ABI),
         }
     }
 }
@@ -229,7 +229,7 @@ impl<T> TryParse<T> for Option<Token>
 where
     TokenValue: TryParse<T>,
 {
-    fn try_parse(self) -> ParseResult<T> {
+    fn try_parse(self) -> Result<T> {
         self.map(|data| data.value).try_parse()
     }
 }
@@ -238,10 +238,10 @@ impl<T> TryParse<T> for Option<TokenValue>
 where
     TokenValue: TryParse<T>,
 {
-    fn try_parse(self) -> ParseResult<T> {
+    fn try_parse(self) -> Result<T> {
         match self {
             Some(data) => data.try_parse(),
-            None => Err(InvalidAbiError),
+            None => Err(INVALID_ABI),
         }
     }
 }
@@ -250,20 +250,16 @@ impl<T> TryParse<T> for Token
 where
     TokenValue: TryParse<T>,
 {
-    fn try_parse(self) -> ParseResult<T> {
+    fn try_parse(self) -> Result<T> {
         self.value.try_parse()
     }
 }
 
 trait TryParse<T>: Sized {
-    fn try_parse(self) -> ParseResult<T>;
+    fn try_parse(self) -> Result<T>;
 }
 
-type ParseResult<T> = Result<T, InvalidAbiError>;
-
-#[derive(Debug, thiserror::Error)]
-#[error("Invalid ABI")]
-struct InvalidAbiError;
+const INVALID_ABI: &str = "Invalid ABI";
 
 pub fn abi_get_details() -> Function {
     let abi = serde_json::from_str::<GetDetailsAbiFunction>(ABI).unwrap();

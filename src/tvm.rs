@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
 use ton_block::{
     CommonMsgInfo, CurrencyCollection, Deserializable, Message, MsgAddressInt, OutAction, OutActions, Serializable,
 };
@@ -8,6 +7,8 @@ use ton_types::{Cell, SliceData};
 use ton_vm::executor::gas::gas_state::Gas;
 use ton_vm::stack::integer::IntegerData;
 use ton_vm::stack::{savelist::SaveList, Stack, StackItem};
+
+use crate::utils::Result;
 
 const ONE_TON: u64 = 1_000_000_000;
 const BALANCE: u64 = 100 * ONE_TON;
@@ -20,15 +21,13 @@ pub fn call_msg(
     data: Cell,
     msg: &Message,
 ) -> Result<Vec<Message>> {
-    let msg_cell = msg
-        .write_to_new_cell()
-        .map_err(|_| anyhow!("Failed to serialize message"))?;
+    let msg_cell = msg.write_to_new_cell().map_err(|_| "Failed to serialize message")?;
 
     let mut stack = Stack::new();
     let function_selector = match msg.header() {
         CommonMsgInfo::IntMsgInfo(_) => ton_vm::int!(0),
         CommonMsgInfo::ExtInMsgInfo(_) => ton_vm::int!(-1),
-        CommonMsgInfo::ExtOutMsgInfo(_) => return Err(anyhow!("Invalid message type")),
+        CommonMsgInfo::ExtOutMsgInfo(_) => return Err("Invalid message type"),
     };
 
     stack
@@ -44,10 +43,10 @@ pub fn call_msg(
     let actions_cell = engine
         .get_actions()
         .as_cell()
-        .map_err(|_| anyhow!("Can not get actions"))?
+        .map_err(|_| "Can not get actions")?
         .clone();
 
-    let mut actions = OutActions::construct_from_cell(actions_cell).map_err(|_| anyhow!("Failed to parse actions"))?;
+    let mut actions = OutActions::construct_from_cell(actions_cell).map_err(|_| "Failed to parse actions")?;
 
     let mut msgs = Vec::new();
     for (_, action) in actions.iter_mut().enumerate() {
@@ -71,7 +70,7 @@ pub fn call(
     let mut ctrls = SaveList::new();
     ctrls
         .put(4, &mut StackItem::Cell(data))
-        .map_err(|_| anyhow!("Failed to put data to registers"))?;
+        .map_err(|_| "Failed to put data to registers")?;
 
     let sci = build_contract_info(
         &addr,
@@ -86,30 +85,16 @@ pub fn call(
 
     ctrls
         .put(7, &mut sci.into_temp_data())
-        .map_err(|_| anyhow!("Failed to put SCI to registers"))?;
+        .map_err(|_| "Failed to put SCI to registers")?;
 
     let gas_limit = 1_000_000_000;
     let gas = Gas::new(gas_limit, 0, gas_limit, 10);
 
     let mut engine = ton_vm::executor::Engine::new().setup(SliceData::from(code), Some(ctrls), Some(stack), Some(gas));
 
-    let result = engine.execute();
+    let _ = engine.execute().map_err(|_| "TVM execution failed")?;
 
-    match result {
-        Err(err) => {
-            let exception = ton_vm::error::tvm_exception(err).map_err(|e| anyhow!("Execution error: {:?}", e))?;
-            let code = if let Some(code) = exception.custom_code() {
-                code
-            } else {
-                !(exception
-                    .exception_code()
-                    .unwrap_or(ton_types::ExceptionCode::UnknownError) as i32)
-            };
-
-            Err(anyhow!("TVM Execution failed. {}, {}", exception.to_string(), code))
-        }
-        Ok(_) => Ok(engine),
-    }
+    Ok(engine)
 }
 
 fn build_contract_info(

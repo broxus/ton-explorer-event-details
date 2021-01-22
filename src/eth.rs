@@ -1,14 +1,25 @@
-use anyhow::{anyhow, Result};
 use ethabi::{Token as EthTokenValue, Token};
 use num_bigint::{BigInt, BigUint};
 use serde::Deserialize;
 use ton_abi::{Event as AbiEvent, Token as TonToken, TokenValue as TonTokenValue};
-use ton_types::UInt256;
+use ton_block::MsgAddressInt;
+use ton_types::{Cell, UInt256};
 
-use crate::contract::TonEventDetails;
+use crate::utils::Result;
 
-pub fn decode_event_data(event: TonEventDetails, event_abi: &str) -> Result<Vec<u8>> {
-    let event_abi = serde_json::from_str::<SwapBackEventAbi>(event_abi)?;
+pub struct EthPayload {
+    pub event_transaction: UInt256,
+    pub event_transaction_lt: u64,
+    pub event_index: u32,
+    pub event_data: Cell,
+    pub event_configuration: MsgAddressInt,
+    pub required_confirmations: u16,
+    pub required_rejections: u16,
+}
+
+pub fn encode_eth_payload(event: EthPayload, event_abi: &str) -> Result<Vec<u8>> {
+    let event_abi =
+        serde_json::from_str::<SwapBackEventAbi>(event_abi).map_err(|_| "Failed to parse swapback event abi")?;
     let mut abi = AbiEvent {
         abi_version: 2,
         name: event_abi.name,
@@ -22,20 +33,20 @@ pub fn decode_event_data(event: TonEventDetails, event_abi: &str) -> Result<Vec<
     };
 
     let decoded = abi
-        .decode_input(event.init_data.event_data.into())
-        .map_err(|_| anyhow!("Failed to decode TON event data"))?;
+        .decode_input(event.event_data.into())
+        .map_err(|_| "Failed to decode TON event data")?;
 
     let event_data = map_event_data(decoded)?;
 
     let tuple = EthTokenValue::Tuple(vec![
-        event.init_data.event_transaction.pack(),
-        event.init_data.event_transaction_lt.pack(),
-        event.init_data.event_index.pack(),
+        event.event_transaction.pack(),
+        event.event_transaction_lt.pack(),
+        event.event_index.pack(),
         event_data.pack(),
-        (event.init_data.ton_event_configuration.workchain_id() as i8).pack(),
-        UInt256::from(event.init_data.ton_event_configuration.address().get_bytestring(0)).pack(),
-        event.init_data.required_confirmations.pack(),
-        event.init_data.required_rejections.pack(),
+        (event.event_configuration.workchain_id() as i8).pack(),
+        UInt256::from(event.event_configuration.address().get_bytestring(0)).pack(),
+        BigUint::from(event.required_confirmations).pack(),
+        BigUint::from(event.required_rejections).pack(),
     ]);
 
     Ok(ethabi::encode(&[tuple]).to_vec())
@@ -79,7 +90,7 @@ fn map_ton_to_eth(token: TonTokenValue) -> Result<EthTokenValue> {
                 .map(|ton| map_ton_to_eth(ton.value))
                 .collect::<Result<_, _>>()?,
         ),
-        _ => return Err(anyhow!("Unsupported type")),
+        _ => return Err("Unsupported type"),
     })
 }
 
