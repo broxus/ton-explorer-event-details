@@ -1,29 +1,34 @@
 <div align="center">
-
-  <h1><code>TON Explorer Addon</code></h1>
-
-  <strong>A template for kick starting a Rust and WebAssembly project using <a href="https://github.com/rustwasm/wasm-pack">wasm-pack</a>.</strong>
+  <h1>TON Event Details</h1>
+  <strong>WASM library to extract event details on the client</strong>
 </div>
 
-## 🚴 Usage
+## Usage
 
-### 🛠️ Build with `wasm-pack build`
-
-```
-wasm-pack build
+```shell
+npm install --save ton-explorer-event-details
 ```
 
-### 🔬 Test in Headless Browsers with `wasm-pack test`
+## Example
 
+```js
+import * as addon from 'ton-explorer-event-details';
+
+const TON_EVENT = '...base64 encoded account state...';
+
+const ETH_ABI = `{
+    "name": "TONStateChange",
+    "inputs": [{"name":"state","type":"uint256"}], 
+    "outputs": [] 
+}`;
+
+try {
+    const details = addon.getDetails(TON_EVENT);
+    console.log(details);
+
+    const payload = addon.encodePayload(details, ETH_ABI);
+    console.log(payload);
+} catch (e) {
+    console.error(e);
+}
 ```
-wasm-pack test --headless --firefox
-```
-
-## 🔋 Batteries Included
-
-* [`wasm-bindgen`](https://github.com/rustwasm/wasm-bindgen) for communicating
-  between WebAssembly and JavaScript.
-* [`console_error_panic_hook`](https://github.com/rustwasm/console_error_panic_hook)
-  for logging panic messages to the developer console.
-* [`wee_alloc`](https://github.com/rustwasm/wee_alloc), an allocator optimized
-  for small code size.

@@ -24,7 +24,7 @@ extern "C" {
     fn log(s: &str);
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = "getDetails")]
 pub fn get_details(account_state: &str) -> Result<TonEventDetails, JsValue> {
     let account_state = base64::decode(account_state).map_err(|_| "Failed to decode account state")?;
     let (code, data) = utils::decode_account_state(&account_state).handle_error()?;
@@ -32,8 +32,8 @@ pub fn get_details(account_state: &str) -> Result<TonEventDetails, JsValue> {
     convert_event_details(details).handle_error()
 }
 
-#[wasm_bindgen]
-pub fn encode_eth_payload(event: &TonEventDetails, eth_abi: &str) -> Result<String, JsValue> {
+#[wasm_bindgen(js_name = "encodePayload")]
+pub fn encode_payload(event: &TonEventDetails, eth_abi: &str) -> Result<String, JsValue> {
     let payload = convert_eth_payload(event).handle_error()?;
     eth::encode_eth_payload(payload, eth_abi)
         .map(|payload| base64::encode(&payload))
@@ -68,14 +68,14 @@ fn convert_eth_payload(value: &TonEventDetails) -> Result<eth::EthPayload> {
 pub struct TonEventDetails {
     init_data: TonEventInitData,
     status: EventStatus,
-    confirms: Vec<String>,
+    confirmations: Vec<String>,
     rejections: Vec<String>,
     signatures: Vec<String>,
 }
 
 #[wasm_bindgen]
 impl TonEventDetails {
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = initData)]
     pub fn init_data(&self) -> TonEventInitData {
         self.init_data.clone()
     }
@@ -86,8 +86,8 @@ impl TonEventDetails {
     }
 
     #[wasm_bindgen(getter)]
-    pub fn confirms(&self) -> js_sys::Array {
-        self.confirms.iter().map(JsValue::from).collect()
+    pub fn confirmations(&self) -> js_sys::Array {
+        self.confirmations.iter().map(JsValue::from).collect()
     }
 
     #[wasm_bindgen(getter)]
@@ -105,7 +105,7 @@ fn convert_event_details(data: contract::TonEventDetails) -> Result<TonEventDeta
     Ok(TonEventDetails {
         init_data: convert_init_data(data.init_data)?,
         status: data.status.into(),
-        confirms: data.confirms.into_iter().map(|item| item.to_string()).collect(),
+        confirmations: data.confirms.into_iter().map(|item| item.to_string()).collect(),
         rejections: data.rejections.into_iter().map(|item| item.to_string()).collect(),
         signatures: data.signatures.into_iter().map(|item| base64::encode(&item)).collect(),
     })
@@ -125,37 +125,37 @@ pub struct TonEventInitData {
 
 #[wasm_bindgen]
 impl TonEventInitData {
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = eventTransaction)]
     pub fn event_transaction(&self) -> String {
         self.event_transaction.clone()
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = eventTransactionLt)]
     pub fn event_transaction_lt(&self) -> String {
         self.event_transaction_lt.clone()
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = eventIndex)]
     pub fn event_index(&self) -> u32 {
         self.event_index
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = eventData)]
     pub fn event_data(&self) -> String {
         self.event_data.clone()
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = tonEventConfiguration)]
     pub fn ton_event_configuration(&self) -> String {
         self.ton_event_configuration.clone()
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = requiredConfirmations)]
     pub fn required_confirmations(&self) -> u16 {
         self.required_confirmations
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = requiredRejections)]
     pub fn required_rejections(&self) -> u16 {
         self.required_rejections
     }
