@@ -14,18 +14,9 @@ use crate::utils::Result;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[wasm_bindgen(start)]
-pub fn run() {
-    utils::set_panic_hook();
-}
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
 #[wasm_bindgen(js_name = "getDetails")]
 pub fn get_details(account_state: &str) -> Result<TonEventDetails, JsValue> {
+    utils::set_panic_hook();
     let account_state = base64::decode(account_state).map_err(|_| "Failed to decode account state")?;
     let (code, data) = utils::decode_account_state(&account_state).handle_error()?;
     let details = contract::get_details(code, data).handle_error()?;
@@ -34,9 +25,10 @@ pub fn get_details(account_state: &str) -> Result<TonEventDetails, JsValue> {
 
 #[wasm_bindgen(js_name = "encodePayload")]
 pub fn encode_payload(event: &TonEventDetails, eth_abi: &str) -> Result<String, JsValue> {
+    utils::set_panic_hook();
     let payload = convert_eth_payload(event).handle_error()?;
     eth::encode_eth_payload(payload, eth_abi)
-        .map(|payload| base64::encode(&payload))
+        .map(|payload| hex::encode(&payload))
         .handle_error()
 }
 
@@ -107,7 +99,7 @@ fn convert_event_details(data: contract::TonEventDetails) -> Result<TonEventDeta
         status: data.status.into(),
         confirmations: data.confirms.into_iter().map(|item| item.to_string()).collect(),
         rejections: data.rejections.into_iter().map(|item| item.to_string()).collect(),
-        signatures: data.signatures.into_iter().map(|item| base64::encode(&item)).collect(),
+        signatures: data.signatures.into_iter().map(|item| hex::encode(&item)).collect(),
     })
 }
 
