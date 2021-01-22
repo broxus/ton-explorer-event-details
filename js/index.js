@@ -3,9 +3,7 @@ const TON_EVENT = "te6ccgECNQEACtMAAm/ABbeArwAnHnk7c5gYrSVP3w6tPoX+OdDJjHH6JzgTv
 const ETH_ABI = `{ "name": "TONStateChange", "inputs": [ {"name":"state","type":"uint256"} ], "outputs": [ ] }`;
 
 import("../pkg").then(module => {
-    const account_state = atob(TON_EVENT);
-
-    const details = module.get_details(Uint8Array.from(account_state, c => c.charCodeAt(0)));
+    const details = module.get_details(TON_EVENT);
     console.log(details);
 
     const payload = module.encode_eth_payload(details, ETH_ABI);

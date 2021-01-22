@@ -25,8 +25,9 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn get_details(account_state: &[u8]) -> Result<TonEventDetails, JsValue> {
-    let (code, data) = utils::decode_account_state(account_state).handle_error()?;
+pub fn get_details(account_state: &str) -> Result<TonEventDetails, JsValue> {
+    let account_state = base64::decode(account_state).map_err(|_| "Failed to decode account state")?;
+    let (code, data) = utils::decode_account_state(&account_state).handle_error()?;
     let details = contract::get_details(code, data).handle_error()?;
     convert_event_details(details).handle_error()
 }
