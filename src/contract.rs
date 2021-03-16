@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use ethabi::Address;
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 use serde::Deserialize;
@@ -220,6 +221,29 @@ impl TryParse<UInt256> for TokenValue {
     fn try_parse(self) -> Result<UInt256> {
         match self {
             TokenValue::Uint(data) => Ok(data.number.to_bytes_be().into()),
+            _ => Err(INVALID_ABI),
+        }
+    }
+}
+
+impl TryParse<ethabi::Address> for TokenValue {
+    fn try_parse(self) -> Result<Address> {
+        match self {
+            TokenValue::Uint(value) => {
+                let mut address = ethereum_types::Address::default();
+                let bytes = value.number.to_bytes_be();
+
+                const ADDRESS_SIZE: usize = 20;
+
+                // copy min(N,20) bytes into last min(N,20) elements of address
+
+                let size = bytes.len();
+                let src_offset = size - size.min(ADDRESS_SIZE);
+                let dest_offset = ADDRESS_SIZE - size.min(ADDRESS_SIZE);
+                address.0[dest_offset..ADDRESS_SIZE].copy_from_slice(&bytes[src_offset..size]);
+
+                Ok(address)
+            }
             _ => Err(INVALID_ABI),
         }
     }

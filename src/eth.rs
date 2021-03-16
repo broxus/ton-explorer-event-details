@@ -15,6 +15,7 @@ pub struct EthPayload {
     pub event_configuration: MsgAddressInt,
     pub required_confirmations: u16,
     pub required_rejections: u16,
+    pub proxy: ethabi::Address,
 }
 
 pub fn encode_eth_payload(event: EthPayload, event_abi: &str) -> Result<Vec<u8>> {
@@ -47,6 +48,7 @@ pub fn encode_eth_payload(event: EthPayload, event_abi: &str) -> Result<Vec<u8>>
         UInt256::from(event.event_configuration.address().get_bytestring(0)).pack(),
         BigUint::from(event.required_confirmations).pack(),
         BigUint::from(event.required_rejections).pack(),
+        event.proxy.pack(),
     ]);
 
     Ok(ethabi::encode(&[tuple]).to_vec())
@@ -125,6 +127,12 @@ impl Pack for BigInt {
         let sign = bytes.last().map(|first| (first >> 7) * 255).unwrap_or_default();
         bytes.resize(32, sign);
         EthTokenValue::Int(ethabi::Int::from_little_endian(&bytes))
+    }
+}
+
+impl Pack for ethabi::Address {
+    fn pack(self) -> Token {
+        EthTokenValue::Address(self)
     }
 }
 

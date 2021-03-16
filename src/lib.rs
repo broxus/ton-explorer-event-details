@@ -24,15 +24,16 @@ pub fn get_details(account_state: &str) -> Result<TonEventDetails, JsValue> {
 }
 
 #[wasm_bindgen(js_name = "encodePayload")]
-pub fn encode_payload(event: &TonEventDetails, eth_abi: &str) -> Result<String, JsValue> {
+pub fn encode_payload(event: &TonEventDetails, eth_abi: &str, proxy_address: &str) -> Result<String, JsValue> {
     utils::set_panic_hook();
-    let payload = convert_eth_payload(event).handle_error()?;
+    let proxy_address = ethabi::Address::from_str(proxy_address).map_err(|_| "Failed to decode proxy address")?;
+    let payload = convert_eth_payload(event, proxy_address).handle_error()?;
     eth::encode_eth_payload(payload, eth_abi)
         .map(|payload| hex::encode(&payload))
         .handle_error()
 }
 
-fn convert_eth_payload(value: &TonEventDetails) -> Result<eth::EthPayload> {
+fn convert_eth_payload(value: &TonEventDetails, proxy_address: ethabi::Address) -> Result<eth::EthPayload> {
     let event_transaction =
         hex::decode(&value.init_data.event_transaction).map_err(|_| "Failed to parse event transaction")?;
     let event_transaction_lt =
@@ -53,6 +54,7 @@ fn convert_eth_payload(value: &TonEventDetails) -> Result<eth::EthPayload> {
         event_configuration,
         required_confirmations: value.init_data.required_confirmations,
         required_rejections: value.init_data.required_rejections,
+        proxy: proxy_address,
     })
 }
 
