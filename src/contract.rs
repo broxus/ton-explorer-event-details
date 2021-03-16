@@ -82,12 +82,15 @@ impl TryParse<TonEventDetails> for Vec<Token> {
 pub struct TonEventInitData {
     pub event_transaction: UInt256,
     pub event_transaction_lt: u64,
+    pub event_timestamp: u32,
     pub event_index: u32,
     pub event_data: Cell,
 
     pub ton_event_configuration: MsgAddressInt,
-    pub required_confirmations: BigUint,
-    pub required_rejections: BigUint,
+    pub required_confirmations: u16,
+    pub required_rejections: u16,
+
+    pub configuration_meta: Cell,
 }
 
 impl TryParse<TonEventInitData> for TokenValue {
@@ -100,11 +103,13 @@ impl TryParse<TonEventInitData> for TokenValue {
         Ok(TonEventInitData {
             event_transaction: tuple.next().try_parse()?,
             event_transaction_lt: tuple.next().try_parse()?,
+            event_timestamp: tuple.next().try_parse()?,
             event_index: tuple.next().try_parse()?,
             event_data: tuple.next().try_parse()?,
             ton_event_configuration: tuple.next().try_parse()?,
             required_confirmations: tuple.next().try_parse()?,
             required_rejections: tuple.next().try_parse()?,
+            configuration_meta: tuple.next().try_parse()?,
         })
     }
 }
@@ -173,7 +178,6 @@ impl TryParse<u64> for TokenValue {
     fn try_parse(self) -> Result<u64> {
         match self {
             TokenValue::Uint(data) => data.number.to_u64().ok_or(INVALID_ABI),
-
             _ => Err(INVALID_ABI),
         }
     }
@@ -183,7 +187,15 @@ impl TryParse<u32> for TokenValue {
     fn try_parse(self) -> Result<u32> {
         match self {
             TokenValue::Uint(data) => data.number.to_u32().ok_or(INVALID_ABI),
+            _ => Err(INVALID_ABI),
+        }
+    }
+}
 
+impl TryParse<u16> for TokenValue {
+    fn try_parse(self) -> Result<u16> {
+        match self {
+            TokenValue::Uint(data) => data.number.to_u16().ok_or(INVALID_ABI),
             _ => Err(INVALID_ABI),
         }
     }
@@ -320,7 +332,7 @@ struct GetDetailsAbiFunction {
 const ABI: &str = r#"{
   "name": "getDetails",
   "outputs": [
-    {"components":[{"name":"eventTransaction","type":"uint256"},{"name":"eventTransactionLt","type":"uint64"},{"name":"eventIndex","type":"uint32"},{"name":"eventData","type":"cell"},{"name":"tonEventConfiguration","type":"address"},{"name":"requiredConfirmations","type":"uint256"},{"name":"requiredRejects","type":"uint256"}],"name":"_initData","type":"tuple"},
+    {"components":[{"name":"eventTransaction","type":"uint256"},{"name":"eventTransactionLt","type":"uint64"},{"name":"eventTimestamp","type":"uint32"},{"name":"eventIndex","type":"uint32"},{"name":"eventData","type":"cell"},{"name":"tonEventConfiguration","type":"address"},{"name":"requiredConfirmations","type":"uint16"},{"name":"requiredRejects","type":"uint16"},{"name":"configurationMeta","type":"cell"}],"name":"_initData","type":"tuple"},
     {"name":"_status","type":"uint8"},
     {"name":"_confirmRelays","type":"address[]"},
     {"name":"_rejectRelays","type":"address[]"},

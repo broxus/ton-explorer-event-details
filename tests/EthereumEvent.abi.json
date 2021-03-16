@@ -1,0 +1,53 @@
+{
+  "ABI version": 2,
+  "header": ["time", "expire"],
+  "functions": [
+    {
+      "name": "constructor",
+      "inputs": [
+        {"name":"relay","type":"address"}
+      ],
+      "outputs": [
+      ]
+    },
+    {
+      "name": "confirm",
+      "inputs": [
+        {"name":"relay","type":"address"}
+      ],
+      "outputs": [
+      ]
+    },
+    {
+      "name": "reject",
+      "inputs": [
+        {"name":"relay","type":"address"}
+      ],
+      "outputs": [
+      ]
+    },
+    {
+      "name": "executeProxyCallback",
+      "inputs": [
+      ],
+      "outputs": [
+      ]
+    },
+    {
+      "name": "getDetails",
+      "inputs": [
+      ],
+      "outputs": [
+        {"components":[{"name":"eventTransaction","type":"uint256"},{"name":"eventIndex","type":"uint32"},{"name":"eventData","type":"cell"},{"name":"eventBlockNumber","type":"uint32"},{"name":"eventBlock","type":"uint256"},{"name":"ethereumEventConfiguration","type":"address"},{"name":"requiredConfirmations","type":"uint16"},{"name":"requiredRejects","type":"uint16"},{"name":"proxyAddress","type":"address"}],"name":"_initData","type":"tuple"},
+        {"name":"_status","type":"uint8"},
+        {"name":"_confirmRelays","type":"address[]"},
+        {"name":"_rejectRelays","type":"address[]"}
+      ]
+    }
+  ],
+  "data": [
+    {"components":[{"name":"eventTransaction","type":"uint256"},{"name":"eventIndex","type":"uint32"},{"name":"eventData","type":"cell"},{"name":"eventBlockNumber","type":"uint32"},{"name":"eventBlock","type":"uint256"},{"name":"ethereumEventConfiguration","type":"address"},{"name":"requiredConfirmations","type":"uint16"},{"name":"requiredRejects","type":"uint16"},{"name":"proxyAddress","type":"address"}],"key":1,"name":"initData","type":"tuple"}
+  ],
+  "events": [
+  ]
+}

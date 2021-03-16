@@ -5,11 +5,14 @@ use ton_abi::{Event as AbiEvent, Token as TonToken, TokenValue as TonTokenValue}
 use ton_block::MsgAddressInt;
 use ton_types::{Cell, UInt256};
 
+use wasm_bindgen::prelude::*;
+
 use crate::utils::Result;
 
 pub struct EthPayload {
     pub event_transaction: UInt256,
     pub event_transaction_lt: u64,
+    pub event_timestamp: u32,
     pub event_index: u32,
     pub event_data: Cell,
     pub event_configuration: MsgAddressInt,
@@ -42,6 +45,7 @@ pub fn encode_eth_payload(event: EthPayload, event_abi: &str) -> Result<Vec<u8>>
     let tuple = EthTokenValue::Tuple(vec![
         event.event_transaction.pack(),
         event.event_transaction_lt.pack(),
+        event.event_timestamp.pack(),
         event.event_index.pack(),
         event_data.pack(),
         (event.event_configuration.workchain_id() as i8).pack(),
@@ -143,6 +147,12 @@ impl Pack for u64 {
 }
 
 impl Pack for u32 {
+    fn pack(self) -> Token {
+        BigUint::from(self).pack()
+    }
+}
+
+impl Pack for u16 {
     fn pack(self) -> Token {
         BigUint::from(self).pack()
     }

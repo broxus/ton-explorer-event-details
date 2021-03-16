@@ -49,6 +49,7 @@ fn convert_eth_payload(value: &TonEventDetails, proxy_address: ethabi::Address) 
     Ok(eth::EthPayload {
         event_transaction: event_transaction.into(),
         event_transaction_lt,
+        event_timestamp: value.init_data.event_timestamp,
         event_index: value.init_data.event_index,
         event_data,
         event_configuration,
@@ -110,11 +111,13 @@ fn convert_event_details(data: contract::TonEventDetails) -> Result<TonEventDeta
 pub struct TonEventInitData {
     event_transaction: String,
     event_transaction_lt: String,
+    event_timestamp: u32,
     event_index: u32,
     event_data: String,
     ton_event_configuration: String,
     required_confirmations: u16,
     required_rejections: u16,
+    configuration_meta: String,
 }
 
 #[wasm_bindgen]
@@ -127,6 +130,11 @@ impl TonEventInitData {
     #[wasm_bindgen(getter = eventTransactionLt)]
     pub fn event_transaction_lt(&self) -> String {
         self.event_transaction_lt.clone()
+    }
+
+    #[wasm_bindgen(getter = eventTimestamp)]
+    pub fn event_timestamp(&self) -> u32 {
+        self.event_timestamp
     }
 
     #[wasm_bindgen(getter = eventIndex)]
@@ -153,6 +161,11 @@ impl TonEventInitData {
     pub fn required_rejections(&self) -> u16 {
         self.required_rejections
     }
+
+    #[wasm_bindgen(getter = configurationMeta)]
+    pub fn configuration_meta(&self) -> String {
+        self.configuration_meta.clone()
+    }
 }
 
 fn convert_init_data(data: contract::TonEventInitData) -> Result<TonEventInitData> {
@@ -161,14 +174,21 @@ fn convert_init_data(data: contract::TonEventInitData) -> Result<TonEventInitDat
         Err(_) => return Err("Failed to serialize Cell"),
     };
 
+    let configuration_meta = match ton_types::serialize_toc(&data.configuration_meta) {
+        Ok(data) => base64::encode(&data),
+        Err(_) => return Err("Failed to serialize Cell"),
+    };
+
     Ok(TonEventInitData {
         event_transaction: data.event_transaction.to_hex_string(),
         event_transaction_lt: data.event_transaction_lt.to_string(),
+        event_timestamp: data.event_timestamp,
         event_index: data.event_index,
         event_data,
         ton_event_configuration: data.ton_event_configuration.to_string(),
         required_confirmations: data.required_confirmations.to_u16().ok_or("Invalid ABI")?,
         required_rejections: data.required_confirmations.to_u16().ok_or("Invalid ABI")?,
+        configuration_meta,
     })
 }
 
