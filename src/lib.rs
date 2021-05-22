@@ -5,11 +5,12 @@ mod utils;
 
 use std::str::FromStr;
 
+use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 use ton_block::MsgAddressInt;
 use wasm_bindgen::prelude::*;
 
-use crate::utils::Result;
+use crate::utils::*;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -21,6 +22,28 @@ pub fn get_details(account_state: &str) -> Result<TonEventDetails, JsValue> {
     let (code, data) = utils::decode_account_state(&account_state).handle_error()?;
     let details = contract::get_details(code, data).handle_error()?;
     convert_event_details(details).handle_error()
+}
+
+#[wasm_bindgen(js_name = "encodeEthAddress")]
+pub fn encode_eth_address(address: &str) -> Result<String, JsValue> {
+    utils::set_panic_hook();
+    let address = ethabi::Address::from_str(address).map_err(|_| "Failed to decode proxy address")?;
+    let data: ton_types::Cell = ton_abi::TokenValue::pack_values_into_chain(
+        &[ton_abi::Token {
+            name: String::default(),
+            value: ton_abi::TokenValue::Uint(ton_abi::Uint {
+                number: BigUint::from_bytes_be(&address.0),
+                size: 160,
+            }),
+        }],
+        Vec::new(),
+        2,
+    )
+    .handle_error()?
+    .into_cell()
+    .handle_error()?;
+    let data = ton_types::serialize_toc(&data).handle_error()?;
+    Ok(base64::encode(&data))
 }
 
 #[wasm_bindgen(js_name = "encodePayload")]
@@ -211,6 +234,14 @@ impl From<contract::EventStatus> for EventStatus {
 }
 
 impl<T> HandleError for Result<T> {
+    type Output = T;
+
+    fn handle_error(self) -> Result<Self::Output, JsValue> {
+        self.map_err(|e| js_sys::Error::new(&e.to_string()).into())
+    }
+}
+
+impl<T> HandleError for ton_types::Result<T> {
     type Output = T;
 
     fn handle_error(self) -> Result<Self::Output, JsValue> {

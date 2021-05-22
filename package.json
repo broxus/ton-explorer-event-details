@@ -1,7 +1,7 @@
 {
   "author": "Ivan Kalinin <i.kalinin@dexpa.io>",
   "name": "ton-explorer-event-details",
-  "version": "0.1.0",
+  "version": "0.1.11",
   "scripts": {
     "build": "rimraf dist pkg && webpack",
     "start": "rimraf dist pkg && webpack-dev-server --open -d",
